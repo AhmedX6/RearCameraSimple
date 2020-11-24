@@ -66,7 +66,7 @@ bool VideoCapture::open(const char *deviceName)
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     format.fmt.pix.width = 720;
-    format.fmt.pix.height = 240;   
+    format.fmt.pix.height = 240;
     format.fmt.pix.field = V4L2_FIELD_ALTERNATE;
     ALOGD("Requesting format %c%c%c%c (0x%08X)",
           ((char *)&format.fmt.pix.pixelformat)[0],
@@ -127,7 +127,7 @@ bool VideoCapture::startStream(std::function<void(VideoCapture *, v4l2_buffer *,
     }
 
     v4l2_requestbuffers bufrequest;
-    bufrequest.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    bufrequest.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
     bufrequest.memory = V4L2_MEMORY_MMAP;
     bufrequest.count = 1;
     if (ioctl(this->mDeviceFd, VIDIOC_REQBUFS, &bufrequest) < 0)

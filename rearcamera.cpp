@@ -16,7 +16,7 @@ RearCamera::RearCamera()
     this->idTextureGearForward = 0;
     this->idTextureHandBreak = 0;
     this->cameraTexId = 0;
-    this->mVideoCapture.open("/dev/video0");
+    this->mVideoCapture.open("/dev/video14");
 }
 
 void RearCamera::checkGlError(const char *op)
@@ -51,12 +51,11 @@ bool RearCamera::initSurface()
         return false;
     }
     ALOGD("Global surface size is w=%d h=%d", dinfo.w, dinfo.h);
-    android::sp<android::SurfaceControl> control = this->mSession->createSurface(android::String8("RearCamera"), (dinfo.w / 3) * 2, dinfo.h - (dinfo.h / 4), android::PIXEL_FORMAT_RGB_888);
-    control->setPosition(GL_ZERO, (dinfo.h / 4) / 2);
-
-    android::SurfaceComposerClient::openGlobalTransaction();
-    control->setLayer(0x7FFFFFFF);
-    android::SurfaceComposerClient::closeGlobalTransaction();
+    android::sp<android::SurfaceControl> control = mSession->createSurface(android::String8("RearCamera"), dinfo.w, dinfo.h, android::PIXEL_FORMAT_RGB_888);
+    android::SurfaceComposerClient::Transaction{}
+            .setLayer(control, 0x7FFFFFFF)
+            .setSize(control, dinfo.w, dinfo.h)
+            .apply();
 
     android::sp<android::Surface> s = control->getSurface();
 
@@ -206,7 +205,7 @@ bool RearCamera::loadPngFromPath(const std::string &textureName, const std::stri
 
     png_bytepp row_pointers = png_get_rows(png_ptr, info_ptr);
 
-    for (int i = 0; i < height; i++)
+    for (unsigned int i = 0; i < height; i++)
     {
         memcpy(outData + (row_bytes * i), row_pointers[i], row_bytes);
     }
@@ -242,7 +241,7 @@ void RearCamera::initAllTexturesFromPng()
     std::vector<std::string> images = Helper::listDirectory("", ".png");
     if (images.size() > 0)
     {
-        for (int i = 0; i < images.size(); i++)
+        for (unsigned int i = 0; i < images.size(); i++)
         {
             loadPngFromPath(Helper::basename(images.at(i)), images.at(i));
         }
@@ -304,11 +303,11 @@ void RearCamera::refreshCamera()
     glUniform1i(this->mTagShaderHandle, 1);
     glBindVertexArray(this->VAO);
 
-    GLfloat xpos = this->mSurfaceWidth / 3;
-    GLfloat ypos = this->mSurfaceHeight / 4;
+    GLfloat xpos = 0;
+    GLfloat ypos = 0;
 
-    GLfloat w = this->mSurfaceWidth / 3 * 2;
-    GLfloat h = this->mSurfaceHeight / 4 * 3;
+    GLfloat w = this->mSurfaceWidth;
+    GLfloat h = this->mSurfaceHeight;
 
     GLfloat vertices[6][4] = {
         {xpos, ypos + h, 0.0, 0.0},
