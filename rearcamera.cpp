@@ -167,7 +167,7 @@ void RearCamera::initAllTexturesFromPng()
 
 void RearCamera::createCameraTexture(const int width, const int height)
 {
-    if (cameraTexId == 0)
+    /*if (cameraTexId == 0)
     {
         GLuint idTex;
         glGenTextures(1, &idTex);
@@ -185,6 +185,63 @@ void RearCamera::createCameraTexture(const int width, const int height)
 
         cameraTexId = idTex;
         ALOGD("Camera Texture id is: %d h:%d height:%d", cameraTexId, width, height);
+    }*/
+
+    if (cameraTexY == 0)
+    {
+        GLuint idTex;
+        glGenTextures(1, &idTex);
+        glBindTexture(GL_TEXTURE_2D, idTex);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
+
+        cameraTexU = idTex;
+    }
+
+    if (cameraTexU == 0)
+    {
+        GLuint idTex;
+        glGenTextures(1, &idTex);
+        glBindTexture(GL_TEXTURE_2D, idTex);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
+
+        cameraTexU = idTex;
+    }
+
+    if (cameraTexV == 0)
+    {
+        GLuint idTex;
+        glGenTextures(1, &idTex);
+        glBindTexture(GL_TEXTURE_2D, idTex);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
+
+        cameraTexV = idTex;
     }
 }
 
@@ -205,21 +262,24 @@ void RearCamera::refreshCamera()
         {xpos + w, ypos, 1.0, 1.0},
         {xpos + w, ypos + h, 1.0, 0.0}};
 
-    glBindTexture(GL_TEXTURE_2D, cameraTexId);
-    glUniform1i(mTextShaderHandle, GL_ZERO);
-    glBindVertexArray(VAO);
+    /*if (cameraTexId != 0)
+    {
+        glBindTexture(GL_TEXTURE_2D, cameraTexId);
+        glUniform1i(mTextShaderHandle, GL_ZERO);
+        glBindVertexArray(VAO);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
-                    mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
-    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+        glActiveTexture(GL_TEXTURE0);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
+                        mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+        glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
 
-    glDrawArrays(GL_TRIANGLES, GL_ZERO, 6);
+        glDrawArrays(GL_TRIANGLES, GL_ZERO, 6);
 
-    //end
-    glBindTexture(GL_TEXTURE_2D, GL_ZERO);
-    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+        //end
+        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
+        glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+    }*/
 }
 
 void RearCamera::initEverything()

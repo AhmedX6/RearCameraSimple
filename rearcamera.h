@@ -109,6 +109,10 @@ private:
 
 	GLuint cameraTexId;
 
+	GLuint cameraTexY;
+	GLuint cameraTexU;
+	GLuint cameraTexV;
+
 	GLuint VBO;
 	GLuint VAO;
 
