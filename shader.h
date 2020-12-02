@@ -36,7 +36,7 @@ const char gVertexShader[] =
     "  TexCoords = vertex.zw;\n"
     "}\n";
 
-const char gFragmentNV12ToRGB[] =
+/*const char gFragmentNV12ToRGB[] =
     "#version 320 es\n"
     "precision highp float;\n"
     "in vec2 TexCoords;\n"
@@ -51,6 +51,31 @@ const char gFragmentNV12ToRGB[] =
     "   g = y - 0.69801 * v - 0.337633 * u;\n"
     "   b = y + 1.732446 * u;\n"
     "   color = vec4(r, g, b, 1.0);\n"
+    "}\n";*/
+
+const char gFragmentNV12ToRGB[] =
+    "#version 320 es\n"
+    "precision highp float;\n"
+    "out vec4 color;\n"
+    "in vec2 TexCoords;\n"
+    "uniform sampler2D textureY;\n"
+    "uniform sampler2D textureU;\n"
+    "uniform sampler2D textureV;\n"
+    "void main() {\n"
+    "vec3 yuv, rgb;\n"
+    "vec3 yuv2r = vec3(1.164, 0.0, 1.596);\n"
+    "vec3 yuv2g = vec3(1.164, -0.391, -0.813);\n"
+    "vec3 yuv2b = vec3(1.164, 2.018, 0.0);\n"
+
+    "yuv.x = texture(textureY, TexCoords).r - 0.0625;\n"
+    "yuv.y = texture(textureU, TexCoords).g - 0.5;\n"
+    "yuv.z = texture(textureV, TexCoords).b - 0.5;\n"
+
+    "rgb.x = dot(yuv, yuv2r);\n"
+    "rgb.y = dot(yuv, yuv2g);\n"
+    "rgb.z = dot(yuv, yuv2b);\n"
+
+    "color = vec4(rgb, 1.0);\n"
     "}\n";
 
 /*const char gFragmentNV12ToRGB[] =

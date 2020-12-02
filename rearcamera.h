@@ -105,7 +105,6 @@ private:
 	GLint mColorShaderHandle;
 	GLint mProjectionShaderHandle;
 	GLint mTextShaderHandle;
-	GLint mTextUVShaderHandle;
 
 	GLuint cameraTexId;
 

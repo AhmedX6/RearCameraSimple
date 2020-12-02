@@ -124,9 +124,6 @@ bool RearCamera::initSurfaceConfigs()
         mTextShaderHandle = glGetUniformLocation(mProgram, "text");
         ALOGD("glGetUniformLocation(\"text\") = %d\n", mTextShaderHandle);
 
-        mTextUVShaderHandle = glGetUniformLocation(mProgram, "textUV");
-        ALOGD("glGetUniformLocation(\"glGetUniformLocation\") = %d\n", mTextUVShaderHandle);
-
         glViewport(GL_ZERO, GL_ZERO, mSurfaceWidth, mSurfaceHeight);
 
         glUseProgram(mProgram);
@@ -140,8 +137,8 @@ bool RearCamera::initSurfaceConfigs()
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, GL_ZERO, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(GL_ZERO);
         glVertexAttribPointer(GL_ZERO, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), GL_ZERO);
-        glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-        glBindVertexArray(GL_ZERO);
+        //glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+        //glBindVertexArray(GL_ZERO);
 
         glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(mSurfaceWidth), 0.0f, static_cast<GLfloat>(mSurfaceHeight));
         glUniformMatrix4fv(mProjectionShaderHandle, 1, GL_FALSE, glm::value_ptr(projection));
@@ -203,7 +200,7 @@ void RearCamera::createCameraTexture(const int width, const int height)
         glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
         glBindTexture(GL_TEXTURE_2D, GL_ZERO);
 
-        cameraTexU = idTex;
+        cameraTexY = idTex;
     }
 
     if (cameraTexU == 0)
@@ -247,6 +244,7 @@ void RearCamera::createCameraTexture(const int width, const int height)
 
 void RearCamera::refreshCamera()
 {
+    glUseProgram(mProgram);
     GLfloat xpos = 0;
     GLfloat ypos = 0;
 
@@ -262,25 +260,78 @@ void RearCamera::refreshCamera()
         {xpos + w, ypos, 1.0, 1.0},
         {xpos + w, ypos + h, 1.0, 0.0}};
 
-    /*if (cameraTexId != 0)
-    {
-        glBindTexture(GL_TEXTURE_2D, cameraTexId);
-        glUniform1i(mTextShaderHandle, GL_ZERO);
-        glBindVertexArray(VAO);
+    GLint locTexY = glGetUniformLocation(mProgram, "textureY");
+    GLint locTexU = glGetUniformLocation(mProgram, "textureU");
+    GLint locTexV = glGetUniformLocation(mProgram, "textureV");
+    ALOGD("glGetUniformLocation(\"textureY\") = %d\n", locTexY);
+    ALOGD("glGetUniformLocation(\"textureU\") = %d\n", locTexU);
+    ALOGD("glGetUniformLocation(\"textureV\") = %d\n", locTexV);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
-                        mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
-        glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+    glUniform1i(locTexY, 0);
+    glUniform1i(locTexU, 1);
+    glUniform1i(locTexV, 2);
 
-        glDrawArrays(GL_TRIANGLES, GL_ZERO, 6);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cameraTexY);
+    glUniform1i(locTexY, GL_ZERO);
+    glBindVertexArray(VAO);
+    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
+                    mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
 
-        //end
-        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
-        glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-    }*/
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, cameraTexU);
+    glUniform1i(locTexU, GL_ZERO);
+    glBindVertexArray(VAO);
+    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth() / 2,
+                    mVideoCapture.getHeight() / 2, GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, cameraTexV);
+    glUniform1i(locTexU, GL_ZERO);
+    glBindVertexArray(VAO);
+    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth() / 2,
+                    mVideoCapture.getHeight() / 2, GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
+
+/*void RearCamera::refreshCamera()
+{
+    glUseProgram(mProgram);
+    GLfloat xpos = 0;
+    GLfloat ypos = 0;
+
+    GLfloat w = mSurfaceWidth;
+    GLfloat h = mSurfaceHeight;
+
+    GLfloat vertices[6][4] = {
+        {xpos, ypos + h, 0.0, 0.0},
+        {xpos, ypos, 0.0, 1.0},
+        {xpos + w, ypos, 1.0, 1.0},
+
+        {xpos, ypos + h, 0.0, 0.0},
+        {xpos + w, ypos, 1.0, 1.0},
+        {xpos + w, ypos + h, 1.0, 0.0}};
+
+    GLint locTexY = glGetUniformLocation(mProgram, "textureY");
+    GLint locTexU = glGetUniformLocation(mProgram, "textureU");
+    GLint locTexV = glGetUniformLocation(mProgram, "textureV");
+    glBindVertexArray(VAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
+                    mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+
+    glDrawArrays(GL_TRIANGLES, GL_ZERO, 6);
+
+    //end
+    glBindTexture(GL_TEXTURE_2D, GL_ZERO);
+    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+}*/
 
 void RearCamera::initEverything()
 {
