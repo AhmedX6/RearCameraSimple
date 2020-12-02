@@ -194,7 +194,7 @@ int VideoCapture::subAllocate(int type,
             continue;
         }
 
-        //ALOGD("query buf, plane 1 = %d, offset 1 = %d", buffer.m.planes[1].length, buffer.m.planes[1].m.mem_offset);
+        ALOGD("query buf, plane 1 = %d, offset 1 = %d", buffer.m.planes[1].length, buffer.m.planes[1].m.mem_offset);
         base_uv[i] = mmap(NULL, buffer.m.planes[1].length, PROT_READ | PROT_WRITE,
                           MAP_SHARED, mDeviceFd, buffer.m.planes[1].m.mem_offset);
 
@@ -348,8 +348,6 @@ void VideoCapture::stopStream()
 void VideoCapture::collectFrames()
 {
 
-    //unsigned char *tempBufferARGB = new unsigned char[dstWidth * dstHeight * BPP];
-    int field = V4L2_FIELD_TOP;
     while (mRunMode == RUN)
     {
         struct v4l2_buffer buf;
@@ -357,14 +355,21 @@ void VideoCapture::collectFrames()
 
         dequeue(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, &buf, buf_planes);
 
-        ALOGD("%s: dequeued buffer %d (flags:%08x:%s, bytesused:%d, "
+        /*ALOGD("%s: dequeued buffer %d (flags:%08x:%s, bytesused:%d, "
               "offset main: %u mplaneOffset: %d buf.length: %d, buf.sequence:%d, buf.m.planes[0].length:%d buf.field %d",
               buf_type_to_string(&buf),
               buf.index, buf.flags, buf_flags_to_string(buf.flags),
-              buf.m.planes[0].bytesused, buf.m.offset, buf.m.planes[0].data_offset, buf.length, buf.sequence, buf.m.planes[0].length, buf.field);
+              buf.m.planes[0].bytesused, buf.m.offset, buf.m.planes[0].data_offset, buf.length, buf.sequence, buf.m.planes[0].length, buf.field);*/
         {
             const std::lock_guard<std::mutex> lock(mSafeMutex);
             memcpy(mRawCamera, static_cast<uint8_t *>(dstBuffers[buf.index]), dstWidth * dstHeight);
+
+            /*for (int i = 0; i < 5; i++)
+            {
+                ALOGD("main[%d]: 0x%02x", i, mRawCamera[i]);
+                ALOGD("uv main[%d]: 0x%02x", i, static_cast<unsigned char *>(dstBuffers_uv[buf.index])[i]);
+            }*/
+
             /*libyuv::ConvertToARGB(static_cast<uint8_t *>(dstBuffers[buf.index]),
                                   dstWidth * dstHeight, // input size
                                   mRGBPixels,
@@ -379,11 +384,7 @@ void VideoCapture::collectFrames()
             //libyuv::ARGBToBGRA(tempBufferARGB, dstWidth * BPP, mRGBPixels, dstWidth * BPP, dstWidth, dstHeight);
             //nv21_to_rgb(mRGBPixels, reinterpret_cast<unsigned char *>(dstBuffers[buf.index]), dstWidth, dstHeight);
         }
-        queue(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, buf.index, field, dstSize, dstSize_uv);
-        if (field == V4L2_FIELD_TOP)
-            field = V4L2_FIELD_BOTTOM;
-        else
-            field = V4L2_FIELD_TOP;
+        queue(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, buf.index, V4L2_FIELD_NONE, dstSize, dstSize_uv);
     }
 
     ALOGD("VideoCapture thread ending");
@@ -535,8 +536,9 @@ unsigned char *VideoCapture::getBufferCamera()
     return mRGBPixels;
 }
 
-unsigned char *VideoCapture::getRawBufferCamera()
+std::tuple<unsigned char *, unsigned char *> VideoCapture::getRawBufferCamera()
 {
     const std::lock_guard<std::mutex> lock(mSafeMutex);
-    return mRawCamera;
+    //std::tuple<unsigned char *, unsigned char *>
+    return std::make_tuple(mRawCamera, nullptr);
 }

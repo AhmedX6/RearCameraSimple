@@ -6,6 +6,7 @@
 #include <functional>
 #include <linux/videodev2.h>
 #include <condition_variable>
+#include <tuple>
 #include <endian.h>
 #include <mutex>
 #include "helper.h"
@@ -40,7 +41,7 @@ public:
   int getHeight() { return dstHeight; };
 
   unsigned char *getBufferCamera();
-  unsigned char *getRawBufferCamera();
+  std::tuple<unsigned char *, unsigned char *> getRawBufferCamera();
 
   bool isOpen() { return mDeviceFd >= 0; };
 
