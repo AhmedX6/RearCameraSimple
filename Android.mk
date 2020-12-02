@@ -21,20 +21,23 @@ LOCAL_SHARED_LIBRARIES := \
     libEGL \
     libGLESv2 \
     libgui \
+    libjpeg \
     libpng
-   
+
 LOCAL_C_INCLUDES += \
     external/libpng \
-    external/vulkan-validation-layers/libs/glm
+    external/vulkan-validation-layers/libs/glm \
+    external/libyuv/files/include
 
 LOCAL_SRC_FILES += \
     rearcamera_main.cpp \
     shader.cpp \
     rearcamera.cpp \
     helper.cpp \
-    videocapture.cpp
+    videocapture.cpp \
+    yuv2rgb.cpp
 
-LOCAL_STATIC_LIBRARIES += cpufeatures
+LOCAL_STATIC_LIBRARIES += cpufeatures libyuv_static
 
 LOCAL_MODULE:= rearcam
 

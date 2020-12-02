@@ -1,3 +1,5 @@
+#define LOG_TAG "Shader"
+
 #include "shader.h"
 
 #include <stdio.h>
@@ -22,7 +24,7 @@ static GLuint loadShader(GLenum type, const char *shaderSrc, const char *name)
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if (!compiled)
     {
-        printf("Error compiling %s shader for %s\n", (type == GL_VERTEX_SHADER) ? "vtx" : "pxl", name);
+        ALOGD("Error compiling %s shader for %s\n", (type == GL_VERTEX_SHADER) ? "vtx" : "pxl", name);
 
         GLint size = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &size);
@@ -31,7 +33,7 @@ static GLuint loadShader(GLenum type, const char *shaderSrc, const char *name)
             // Get and report the error message
             std::unique_ptr<char> infoLog(new char[size]);
             glGetShaderInfoLog(shader, size, NULL, infoLog.get());
-            printf("  msg:\n%s\n", infoLog.get());
+            ALOGD("  msg:\n%s\n", infoLog.get());
         }
 
         glDeleteShader(shader);
@@ -47,7 +49,7 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
     GLuint program = glCreateProgram();
     if (program == 0)
     {
-        printf("Failed to allocate program object\n");
+        ALOGD("Failed to allocate program object\n");
         return 0;
     }
 
@@ -55,14 +57,14 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
     GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vtxSrc, name);
     if (vertexShader == 0)
     {
-        printf("Failed to load vertex shader\n");
+        ALOGD("Failed to load vertex shader\n");
         glDeleteProgram(program);
         return 0;
     }
     GLuint pixelShader = loadShader(GL_FRAGMENT_SHADER, pxlSrc, name);
     if (pixelShader == 0)
     {
-        printf("Failed to load pixel shader\n");
+        ALOGD("Failed to load pixel shader\n");
         glDeleteProgram(program);
         glDeleteShader(vertexShader);
         return 0;
@@ -76,7 +78,7 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (!linked)
     {
-        printf("Error linking program.\n");
+        ALOGD("Error linking program.\n");
         GLint size = 0;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &size);
         if (size > 0)
@@ -84,7 +86,7 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
             // Get and report the error message
             std::unique_ptr<char> infoLog(new char[size]);
             glGetProgramInfoLog(program, size, NULL, infoLog.get());
-            printf("  msg:  %s\n", infoLog.get());
+            ALOGD("  msg:  %s\n", infoLog.get());
         }
 
         glDeleteProgram(program);
@@ -99,7 +101,7 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
     GLint paramSize;
     GLenum paramType;
     const char *typeName = "?";
-    printf("Shader parameters for %s:\n", name);
+    ALOGD("Shader parameters for %s:\n", name);
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &numShaderParams);
     for (GLint i=0; i<numShaderParams; i++) {
         glGetActiveUniform(program,
@@ -116,7 +118,7 @@ GLuint buildShaderProgram(const char *vtxSrc, const char *pxlSrc, const char *na
             case GL_SAMPLER_2D: typeName = "GL_SAMPLER_2D"; break;
         }
 
-        printf("  %2d: %s\t (%d) of type %s(%d)\n", i, paramName, paramSize, typeName, paramType);
+        ALOGD("  %2d: %s\t (%d) of type %s(%d)\n", i, paramName, paramSize, typeName, paramType);
     }
 #endif
 

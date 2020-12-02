@@ -1,3 +1,5 @@
+#define LOG_TAG "Helper"
+
 #include "helper.h"
 
 Helper::Helper()
@@ -93,6 +95,7 @@ void Helper::yuv_convert(unsigned char *buf, unsigned char *rgb, int xsize, int 
 {
     int i;
 
+    //ALOGD("xsize * ysize : %d", xsize * ysize);
     for (i = 0; i < xsize * ysize; i += 2)
     {
         int Y1, Y2, U, V;

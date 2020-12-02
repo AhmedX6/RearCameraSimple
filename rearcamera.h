@@ -47,14 +47,14 @@
 
 namespace android
 {
-class Surface;
-class SurfaceComposerClient;
-class SurfaceControl;
+	class Surface;
+	class SurfaceComposerClient;
+	class SurfaceControl;
 } // namespace android
 
 class RearCamera
 {
-  public:
+public:
 	RearCamera();
 	~RearCamera();
 
@@ -62,7 +62,7 @@ class RearCamera
 	void startCapture();
 	void printAll();
 
-  private:
+private:
 	//full setup
 	bool initShadersProgram();
 	bool initSurface();
@@ -76,7 +76,7 @@ class RearCamera
 	void printTexture(const std::string &, GLfloat, GLfloat, glm::ivec2, glm::vec3);
 	void refreshCamera();
 	void clearAll();
-	
+
 	struct Texture
 	{
 		std::string name;
@@ -85,7 +85,7 @@ class RearCamera
 		glm::ivec2 Size;
 	};
 
-  private:
+private:
 	android::sp<android::SurfaceComposerClient> mSession;
 	android::sp<android::SurfaceControl> mFlingerSurfaceControl;
 	android::sp<android::Surface> mFlingerSurface;
@@ -95,19 +95,17 @@ class RearCamera
 	EGLDisplay mSharedContext;
 	EGLDisplay mSurface;
 
-	int	mSurfaceWidth;
+	int mSurfaceWidth;
 	int mSurfaceHeight;
 	std::map<std::string, Texture> mTextures;
 
 	VideoCapture mVideoCapture;
-	u_int8_t *mTargetPixels;
 
 	GLuint mProgram;
 	GLint mColorShaderHandle;
 	GLint mProjectionShaderHandle;
 	GLint mTextShaderHandle;
-	GLint mTagShaderHandle;
-	GLint mIgnoreColor;
+	GLint mTextUVShaderHandle;
 
 	GLuint cameraTexId;
 

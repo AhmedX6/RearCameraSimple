@@ -5,58 +5,22 @@
 #include <thread>
 #include <functional>
 #include <linux/videodev2.h>
+#include <condition_variable>
+#include <endian.h>
+#include <mutex>
 #include "helper.h"
+#include "yuv2rgb.h"
 
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "RearCamera"
+const int BPP = 4;
 
-const int BPP = 3;
-
+#define CASE(ENUM) \
+  case ENUM:       \
+    return #ENUM;
+#define ARRAY_LENGTH(x) (sizeof(x) / sizeof(*(x)))
 class VideoCapture
 {
 public:
-  bool open(const char *deviceName);
-  void close();
-
-  bool startStream(std::function<void(VideoCapture *, v4l2_buffer *, unsigned char *)> callback = nullptr);
-  void stopStream();
-
-  // Valid only after open()
-  __u32 getWidth() { return mWidth; };
-  __u32 getHeight() { return mHeight; };
-  __u32 getStride() { return mStride; };
-  __u32 getV4LFormat() { return mFormat; };
-
-  unsigned char *getLatestData() { return mRGBPixels; };
-
-  bool isFrameReady() { return mFrameReady; };
-  void markFrameConsumed() { returnFrame(); };
-
-  bool isOpen() { return mDeviceFd >= 0; };
-
-private:
-  void collectFrames();
-  void markFrameReady();
-  bool returnFrame();
-
-  int mDeviceFd = -1;
-
-  v4l2_buffer mBufferInfo = {};
-  void *mPixelBuffer = nullptr;
-
-  __u32 mFormat = 0;
-  __u32 mWidth = 0;
-  __u32 mHeight = 0;
-  __u32 mStride = 0;
-
-  std::function<void(VideoCapture *, v4l2_buffer *, unsigned char *)> mCallback;
-
-  std::thread mCaptureThread;
-  std::atomic<int> mRunMode;
-  std::atomic<bool> mFrameReady;
-  unsigned char *mRGBPixels = nullptr;
+  VideoCapture();
 
   enum RunModes
   {
@@ -64,6 +28,76 @@ private:
     RUN = 1,
     STOPPING = 2,
   };
+
+  bool open(const char *deviceName);
+  void close();
+
+  bool startStream();
+  void stopStream();
+
+  // Valid only after open()
+  int getWidth() { return dstWidth; };
+  int getHeight() { return dstHeight; };
+
+  unsigned char *getBufferCamera();
+  unsigned char *getRawBufferCamera();
+
+  bool isOpen() { return mDeviceFd >= 0; };
+
+private:
+  void collectFrames();
+
+  std::mutex mSafeMutex;
+
+  int mDeviceFd = -1;
+
+  std::thread mCaptureThread;
+  std::atomic<int> mRunMode;
+  std::atomic<bool> mFrameReady;
+  unsigned char *mRGBPixels = nullptr;
+  unsigned char *mRawCamera = nullptr;
+
+  //new
+  int dstHeight = 0;
+  int dstWidth = 0;
+  int dstSize = 0;
+  int dstSize_uv = 0;
+  int dstFourcc = 0;
+  int dst_coplanar = 0;
+  enum v4l2_colorspace dst_colorspace = V4L2_COLORSPACE_SMPTE170M;
+
+  void *dstBuffers[6];
+  void *dstBuffers_uv[6];
+  int dst_numbuf = 6;
+
+  //new methods
+  const char *buf_type_to_string(struct v4l2_buffer *buf);
+  const char *buf_flags_to_string(uint32_t flags);
+  const char *v4l2_field_to_string(struct v4l2_format *fmt);
+  const char *v4l2_colorspace_to_string(struct v4l2_format *fmt);
+  const char *fourcc_to_string(uint32_t fourcc);
+
+  void allocateBuffers(const char *name);
+  int subAllocate(
+      int type,
+      int width,
+      int height,
+      int coplanar,
+      enum v4l2_colorspace clrspc,
+      int *sizeimage_y,
+      int *sizeimage_uv,
+      int fourcc,
+      void *base[],
+      void *base_uv[],
+      int *numbuf,
+      int interlace);
+
+  int queueAllBuffers(int type, int numbuf);
+  void streamOFF(int type);
+  void streamOn(int type);
+
+  int dequeue(int type, struct v4l2_buffer *buf, struct v4l2_plane *buf_planes);
+  int queue(int type, int index, int field, int size_y, int size_uv);
 };
 
 #endif //VIDEO_CAPTURE_H_

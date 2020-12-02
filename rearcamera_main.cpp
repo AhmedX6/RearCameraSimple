@@ -1,4 +1,4 @@
-#define LOG_TAG "RearCamera"
+#define LOG_TAG "RearCameraMain"
 
 #include <stdint.h>
 #include <inttypes.h>
