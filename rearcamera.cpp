@@ -5,16 +5,12 @@
 RearCamera::RearCamera()
 {
     mSession = new android::SurfaceComposerClient();
+    mGearListener = new DataVehicleListener();
     mProgram = 0;
     mColorShaderHandle = -1;
     mProjectionShaderHandle = -1;
     VBO = 0;
     VAO = 0;
-    idTextureGearNeutral = 0;
-    idTextureGearReverse = 0;
-    idTextureGearForward = 0;
-    idTextureHandBreak = 0;
-    cameraTexId = 0;
     mVideoCapture.open("/dev/video14");
 }
 
@@ -39,8 +35,6 @@ bool RearCamera::initShadersProgram()
 
 bool RearCamera::initSurface()
 {
-    ALOGD("initSurface() started");
-
     android::sp<android::IBinder> dtoken(android::SurfaceComposerClient::getBuiltInDisplay(android::ISurfaceComposer::eDisplayIdMain));
     android::DisplayInfo dinfo;
     android::status_t status = android::SurfaceComposerClient::getDisplayInfo(dtoken, &dinfo);
@@ -52,8 +46,9 @@ bool RearCamera::initSurface()
     ALOGD("Global surface size is w=%d h=%d", dinfo.w, dinfo.h);
     android::sp<android::SurfaceControl> control = mSession->createSurface(android::String8("RearCamera"), dinfo.w, dinfo.h, android::PIXEL_FORMAT_RGB_888);
     android::SurfaceComposerClient::Transaction{}
-        .setLayer(control, 0x7FFFFFFF)
+        .setLayer(control, INT_MAX)
         .setSize(control, dinfo.w, dinfo.h)
+        .hide(control)
         .apply();
 
     android::sp<android::Surface> s = control->getSurface();
@@ -137,8 +132,6 @@ bool RearCamera::initSurfaceConfigs()
         glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, GL_ZERO, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(GL_ZERO);
         glVertexAttribPointer(GL_ZERO, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), GL_ZERO);
-        //glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-        //glBindVertexArray(GL_ZERO);
 
         glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(mSurfaceWidth), 0.0f, static_cast<GLfloat>(mSurfaceHeight));
         glUniformMatrix4fv(mProjectionShaderHandle, 1, GL_FALSE, glm::value_ptr(projection));
@@ -164,7 +157,6 @@ void RearCamera::initAllTexturesFromPng()
 
 void RearCamera::createCameraTexture(const int width, const int height)
 {
-    /*if (cameraTexId == 0)
     {
         GLuint idTex;
         glGenTextures(1, &idTex);
@@ -172,38 +164,17 @@ void RearCamera::createCameraTexture(const int width, const int height)
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
-        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
-
-        cameraTexId = idTex;
-        ALOGD("Camera Texture id is: %d h:%d height:%d", cameraTexId, width, height);
-    }*/
-
-    if (cameraTexY == 0)
-    {
-        GLuint idTex;
-        glGenTextures(1, &idTex);
-        glBindTexture(GL_TEXTURE_2D, idTex);
-
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_LUMINANCE, width, height, GL_ZERO, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
         glBindTexture(GL_TEXTURE_2D, GL_ZERO);
 
         cameraTexY = idTex;
     }
 
-    if (cameraTexU == 0)
     {
         GLuint idTex;
         glGenTextures(1, &idTex);
@@ -211,40 +182,23 @@ void RearCamera::createCameraTexture(const int width, const int height)
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_LUMINANCE_ALPHA, width / 2, height / 2, GL_ZERO, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, NULL);
         glBindTexture(GL_TEXTURE_2D, GL_ZERO);
 
         cameraTexU = idTex;
-    }
-
-    if (cameraTexV == 0)
-    {
-        GLuint idTex;
-        glGenTextures(1, &idTex);
-        glBindTexture(GL_TEXTURE_2D, idTex);
-
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glTexImage2D(GL_TEXTURE_2D, GL_ZERO, GL_RED, width, height, GL_ZERO, GL_RED, GL_UNSIGNED_BYTE, NULL);
-        glBindTexture(GL_TEXTURE_2D, GL_ZERO);
-
-        cameraTexV = idTex;
     }
 }
 
 void RearCamera::refreshCamera()
 {
-    glUseProgram(mProgram);
+    if (!mShouldRefresh)
+        mSem.wait();
+
     GLfloat xpos = 0;
     GLfloat ypos = 0;
 
@@ -261,79 +215,106 @@ void RearCamera::refreshCamera()
         {xpos + w, ypos + h, 1.0, 0.0}};
 
     GLint locTexY = glGetUniformLocation(mProgram, "textureY");
-    GLint locTexU = glGetUniformLocation(mProgram, "textureU");
-    GLint locTexV = glGetUniformLocation(mProgram, "textureV");
-    ALOGD("glGetUniformLocation(\"textureY\") = %d\n", locTexY);
-    ALOGD("glGetUniformLocation(\"textureU\") = %d\n", locTexU);
-    ALOGD("glGetUniformLocation(\"textureV\") = %d\n", locTexV);
-
-    glUniform1i(locTexY, 0);
-    glUniform1i(locTexU, 1);
-    glUniform1i(locTexV, 2);
+    GLint locTexU = glGetUniformLocation(mProgram, "textureUV");
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, cameraTexY);
     glUniform1i(locTexY, GL_ZERO);
+    glBindTexture(GL_TEXTURE_2D, cameraTexY);
     glBindVertexArray(VAO);
     glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
-                    mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+                    mVideoCapture.getHeight(), GL_LUMINANCE, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
     glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
 
     glActiveTexture(GL_TEXTURE1);
+    glUniform1i(locTexU, GL_ONE);
     glBindTexture(GL_TEXTURE_2D, cameraTexU);
-    glUniform1i(locTexU, GL_ZERO);
     glBindVertexArray(VAO);
     glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth() / 2,
-                    mVideoCapture.getHeight() / 2, GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
-    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, cameraTexV);
-    glUniform1i(locTexU, GL_ZERO);
-    glBindVertexArray(VAO);
-    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth() / 2,
-                    mVideoCapture.getHeight() / 2, GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
+                    mVideoCapture.getHeight() / 2, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, std::get<1>(mVideoCapture.getRawBufferCamera()));
     glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-/*void RearCamera::refreshCamera()
+// Helper to subscribe to VHal notifications
+bool RearCamera::subscribeToVHal(android::sp<IVehicle> pVnet, android::sp<IVehicleCallback> listener, VehicleProperty propertyId)
 {
-    glUseProgram(mProgram);
-    GLfloat xpos = 0;
-    GLfloat ypos = 0;
+    if (pVnet == nullptr || listener == nullptr)
+    {
+        return false;
+    }
 
-    GLfloat w = mSurfaceWidth;
-    GLfloat h = mSurfaceHeight;
+    // Register for vehicle state change callbacks we care about
+    // Changes in these values are what will trigger a reconfiguration of the EVS pipeline
+    SubscribeOptions optionsData[] = {
+        {.propId = static_cast<int32_t>(propertyId),
+         .flags = SubscribeFlags::EVENTS_FROM_CAR},
+    };
+    hidl_vec<SubscribeOptions> options;
+    options.setToExternal(optionsData, arraysize(optionsData));
+    StatusCode status = pVnet->subscribe(listener, options);
+    if (status != StatusCode::OK)
+    {
+        ALOGW("VHAL subscription for property 0x%08X failed with code %d.", propertyId, status);
+        return false;
+    }
 
-    GLfloat vertices[6][4] = {
-        {xpos, ypos + h, 0.0, 0.0},
-        {xpos, ypos, 0.0, 1.0},
-        {xpos + w, ypos, 1.0, 1.0},
+    return true;
+}
 
-        {xpos, ypos + h, 0.0, 0.0},
-        {xpos + w, ypos, 1.0, 1.0},
-        {xpos + w, ypos + h, 1.0, 0.0}};
+bool RearCamera::getGearFromHal(sp<IVehicle> &vehicleHal)
+{
+    VehiclePropValue gearValue;
+    StatusCode status = StatusCode::TRY_AGAIN;
+    gearValue.prop = static_cast<int32_t>(VehicleProperty::GEAR_SELECTION);
 
-    GLint locTexY = glGetUniformLocation(mProgram, "textureY");
-    GLint locTexU = glGetUniformLocation(mProgram, "textureU");
-    GLint locTexV = glGetUniformLocation(mProgram, "textureV");
-    glBindVertexArray(VAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glTexSubImage2D(GL_TEXTURE_2D, GL_ZERO, GL_ZERO, GL_ZERO, mVideoCapture.getWidth(),
-                    mVideoCapture.getHeight(), GL_RED, GL_UNSIGNED_BYTE, std::get<0>(mVideoCapture.getRawBufferCamera()));
-    glBufferSubData(GL_ARRAY_BUFFER, GL_ZERO, sizeof(vertices), vertices);
+    vehicleHal->get(gearValue,
+                    [&gearValue, &status](StatusCode s, const VehiclePropValue &v) {
+                        status = s;
+                        if (s == StatusCode::OK)
+                        {
+                            gearValue = v;
+                        }
+                    });
+    if (status == StatusCode::OK)
+    {
+        if (gearValue.value.int32Values[0] == static_cast<int>(VehicleGear::GEAR_REVERSE))
+        {
+            ALOGD("Reverse");
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        ALOGD("NOK");
+    }
+    return false;
+}
 
-    glDrawArrays(GL_TRIANGLES, GL_ZERO, 6);
+void RearCamera::startCapture()
+{
+    mShouldRefresh = true;
+    mVideoCapture.startStream();
+    mSem.notify();
+    android::SurfaceComposerClient::Transaction{}
+        .show(mFlingerSurfaceControl)
+        .apply();
+}
 
-    //end
-    glBindTexture(GL_TEXTURE_2D, GL_ZERO);
-    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-}*/
+void RearCamera::stopCapture()
+{
+    mShouldRefresh = false;
+    mVideoCapture.stopStream();
+    android::SurfaceComposerClient::Transaction{}
+        .hide(mFlingerSurfaceControl)
+        .apply();
+}
 
-void RearCamera::initEverything()
+bool RearCamera::initEverything()
 {
     //this order is important
     if (initSurface())
@@ -342,14 +323,40 @@ void RearCamera::initEverything()
         {
             //initAllTexturesFromPng();
             createCameraTexture(mVideoCapture.getWidth(), mVideoCapture.getHeight());
-            startCapture();
+            sp<IVehicle> pVnet;
+            ALOGD("Connecting to Vehicle HAL");
+            pVnet = IVehicle::getService();
+            if (pVnet.get() == nullptr)
+            {
+                return false;
+            }
+
+            if (!subscribeToVHal(pVnet, mGearListener, VehicleProperty::GEAR_SELECTION))
+            {
+                return false;
+            }
+            mGearListener->setCallback(std::bind(&RearCamera::notifyGear, this, std::placeholders::_1));
+            mShouldRefresh = getGearFromHal(pVnet);
+            if (mShouldRefresh)
+            {
+                startCapture();
+            }
+            else
+            {
+                stopCapture();
+            }
+            return true;
         }
     }
+    return false;
 }
 
-void RearCamera::startCapture()
+void RearCamera::notifyGear(bool isEngaged)
 {
-    mVideoCapture.startStream();
+    if (isEngaged)
+        startCapture();
+    else
+        stopCapture();
 }
 
 void RearCamera::printAll()

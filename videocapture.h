@@ -10,18 +10,17 @@
 #include <endian.h>
 #include <mutex>
 #include "helper.h"
-#include "yuv2rgb.h"
 
-const int BPP = 4;
+static constexpr int CAMERA_WIDTH = 720;
+static constexpr int CAMERA_HEIGHT = 480;
+static constexpr int CAMERA_FOURCC = V4L2_PIX_FMT_NV21M;
+static constexpr int CAMERA_CAPTURE_MODE = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 
-#define CASE(ENUM) \
-  case ENUM:       \
-    return #ENUM;
-#define ARRAY_LENGTH(x) (sizeof(x) / sizeof(*(x)))
 class VideoCapture
 {
 public:
   VideoCapture();
+  ~VideoCapture();
 
   enum RunModes
   {
@@ -37,11 +36,10 @@ public:
   void stopStream();
 
   // Valid only after open()
-  int getWidth() { return dstWidth; };
-  int getHeight() { return dstHeight; };
+  int getWidth() { return mCameraWidth; };
+  int getHeight() { return mCameraHeight; };
 
-  unsigned char *getBufferCamera();
-  std::tuple<unsigned char *, unsigned char *> getRawBufferCamera();
+  std::tuple<const unsigned char *, const unsigned char *> getRawBufferCamera();
 
   bool isOpen() { return mDeviceFd >= 0; };
 
@@ -55,50 +53,31 @@ private:
   std::thread mCaptureThread;
   std::atomic<int> mRunMode;
   std::atomic<bool> mFrameReady;
-  unsigned char *mRGBPixels = nullptr;
+
   unsigned char *mRawCamera = nullptr;
+  unsigned char *mRawColorCamera = nullptr;
 
-  //new
-  int dstHeight = 0;
-  int dstWidth = 0;
-  int dstSize = 0;
-  int dstSize_uv = 0;
-  int dstFourcc = 0;
-  int dst_coplanar = 0;
-  enum v4l2_colorspace dst_colorspace = V4L2_COLORSPACE_SMPTE170M;
+  int mCameraWidth = 0;
+  int mCameraHeight = 0;
+  int mCameraFourCC = 0;
 
-  void *dstBuffers[6];
-  void *dstBuffers_uv[6];
-  int dst_numbuf = 6;
+  int mNbrBuffers = 6;
 
-  //new methods
-  const char *buf_type_to_string(struct v4l2_buffer *buf);
-  const char *buf_flags_to_string(uint32_t flags);
-  const char *v4l2_field_to_string(struct v4l2_format *fmt);
-  const char *v4l2_colorspace_to_string(struct v4l2_format *fmt);
-  const char *fourcc_to_string(uint32_t fourcc);
+  int mYBufferSize = 0;
+  int mUVBufferSize = 0;
+
+  void *mPointerBuffersY[6];
+  void *mPointerBuffersUV[6];
 
   void allocateBuffers(const char *name);
-  int subAllocate(
-      int type,
-      int width,
-      int height,
-      int coplanar,
-      enum v4l2_colorspace clrspc,
-      int *sizeimage_y,
-      int *sizeimage_uv,
-      int fourcc,
-      void *base[],
-      void *base_uv[],
-      int *numbuf,
-      int interlace);
+  int prepare();
 
-  int queueAllBuffers(int type, int numbuf);
-  void streamOFF(int type);
-  void streamOn(int type);
+  int queueAllBuffers(int type);
+  void stopV4Lstream(int type);
+  void startV4Lstream(int type);
 
-  int dequeue(int type, struct v4l2_buffer *buf, struct v4l2_plane *buf_planes);
-  int queue(int type, int index, int field, int size_y, int size_uv);
+  int dequeueFrame(int type, struct v4l2_buffer *buf, struct v4l2_plane *buf_planes);
+  int queueFrame(int type, int index, int field, int size_y, int size_uv);
 };
 
 #endif //VIDEO_CAPTURE_H_

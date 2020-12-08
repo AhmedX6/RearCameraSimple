@@ -70,11 +70,16 @@ int main(int argc, char **argv)
     sigaction(SIGTERM, &sigIntHandler, NULL);
 
     RearCamera rearCamera;
-    rearCamera.initEverything();
-    while (!exitFromAppFlag)
+    if (rearCamera.initEverything())
     {
-        usleep(10000);
-        rearCamera.printAll();
+        while (!exitFromAppFlag)
+        {
+            rearCamera.printAll();
+        }
+    }
+    else
+    {
+        ALOGD("Fail starting rear camera...");
     }
 
     ALOGD("RearCamera exit");

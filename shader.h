@@ -36,94 +36,24 @@ const char gVertexShader[] =
     "  TexCoords = vertex.zw;\n"
     "}\n";
 
-/*const char gFragmentNV12ToRGB[] =
-    "#version 320 es\n"
-    "precision highp float;\n"
-    "in vec2 TexCoords;\n"
-    "out vec4 color;\n"
-    "uniform sampler2D text;\n"
-    "void main() {\n"
-    "   float r, g, b, y, u, v;\n"
-    "   y = texture(text, TexCoords).r;\n"
-    "   u = texture(text, TexCoords).g;\n"
-    "   v = texture(text, TexCoords).b;\n"
-    "   r = y + 1.13983 * v;\n"
-    "   g = y - 0.69801 * v - 0.337633 * u;\n"
-    "   b = y + 1.732446 * u;\n"
-    "   color = vec4(r, g, b, 1.0);\n"
-    "}\n";*/
-
 const char gFragmentNV12ToRGB[] =
     "#version 320 es\n"
     "precision highp float;\n"
-    "out vec4 color;\n"
-    "in vec2 TexCoords;\n"
-    "uniform sampler2D textureY;\n"
-    "uniform sampler2D textureU;\n"
-    "uniform sampler2D textureV;\n"
-    "void main() {\n"
-    "vec3 yuv, rgb;\n"
-    "vec3 yuv2r = vec3(1.164, 0.0, 1.596);\n"
-    "vec3 yuv2g = vec3(1.164, -0.391, -0.813);\n"
-    "vec3 yuv2b = vec3(1.164, 2.018, 0.0);\n"
-
-    "yuv.x = texture(textureY, TexCoords).r - 0.0625;\n"
-    "yuv.y = texture(textureU, TexCoords).g - 0.5;\n"
-    "yuv.z = texture(textureV, TexCoords).b - 0.5;\n"
-
-    "rgb.x = dot(yuv, yuv2r);\n"
-    "rgb.y = dot(yuv, yuv2g);\n"
-    "rgb.z = dot(yuv, yuv2b);\n"
-
-    "color = vec4(rgb, 1.0);\n"
-    "}\n";
-
-/*const char gFragmentNV12ToRGB[] =
-    "#version 320 es\n"
-    "precision highp float;\n"
     "in vec2 TexCoords;\n"
     "out vec4 color;\n"
     "uniform sampler2D text;\n"
-    "vec3 yuv2rgb(in vec3 yuv)\n"
-    "{\n"
-    "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
-    "const vec3 Rcoeff = vec3( 1.164, 0.000,  1.596);\n"
-    "const vec3 Gcoeff = vec3( 1.164, -0.391, -0.813);\n"
-    "const vec3 Bcoeff = vec3( 1.164, 2.018,  0.000);\n"
-
-    "vec3 rgb;\n"
-
-    "yuv = clamp(yuv, 0.0, 1.0);\n"
-
-    "yuv += offset;\n"
-
-    "rgb.r = dot(yuv, Rcoeff);\n"
-    "rgb.g = dot(yuv, Gcoeff);\n"
-    "rgb.b = dot(yuv, Bcoeff);\n"
-    "return rgb;\n"
-    "}\n"
-
-    "vec3 get_yuv_from_texture(in vec2 tcoord)\n"
-    "{\n"
-    "vec3 yuv;\n"
-    "yuv.x = texture(text, TexCoords).r;\n"
-    "yuv.y = texture(text, TexCoords).r;\n"
-    "yuv.z = texture(text, TexCoords).r;\n"
-    "return yuv;\n"
-    "}\n"
-
-    "vec4 mytexture2D(in vec2 tcoord)\n"
-    "{\n"
-    "vec3 rgb, yuv;\n"
-    " yuv = get_yuv_from_texture(tcoord);\n"
-    "   rgb = yuv2rgb(yuv);\n"
-    "   return vec4(rgb, 1.0);\n"
-    "}\n"
-
-    "void main()\n"
-    "{\n"
-    "   color = mytexture2D(TexCoords);\n"
-    "}\n";*/
+    "layout(binding = 0) uniform sampler2D textureY;\n"
+    "layout(binding = 1) uniform sampler2D textureUV;\n"
+    "void main() {\n"
+    "   float r, g, b, y, u, v;\n"
+    "   y = texture(textureY, TexCoords).r;\n"
+    "   u = texture(textureUV, TexCoords).r - 0.5;\n"
+    "   v = texture(textureUV, TexCoords).a - 0.5;\n"
+    "   r = y + 1.13983 * v;\n"
+    "   g = y - 0.39465 * u - 0.58060 * v;\n"
+    "   b = y + 2.03211 * u;\n"
+    "   color = vec4(r, g, b, 1.0);\n"
+    "}\n";
 
 const char gFragmentShader[] =
     "#version 320 es\n"
@@ -135,7 +65,6 @@ const char gFragmentShader[] =
     "  color = texture(text, TexCoords);\n"
     "}\n";
 
-GLuint
-buildShaderProgram(const char *, const char *, const char *);
+GLuint buildShaderProgram(const char *, const char *, const char *);
 
 #endif // SHADER_H

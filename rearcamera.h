@@ -24,6 +24,7 @@
 #include <utils/SystemClock.h>
 
 #include <android-base/properties.h>
+#include "android-base/macros.h"
 
 #include <ui/PixelFormat.h>
 #include <ui/Rect.h>
@@ -39,11 +40,16 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 
+#include <hidl/HidlTransportSupport.h>
+
 #include <png.h>
 
 #include "helper.h"
 #include "shader.h"
 #include "videocapture.h"
+
+#include "sem.h"
+#include "dataVehicleListener.h"
 
 namespace android
 {
@@ -58,8 +64,7 @@ public:
 	RearCamera();
 	~RearCamera();
 
-	void initEverything();
-	void startCapture();
+	bool initEverything();
 	void printAll();
 
 private:
@@ -75,7 +80,13 @@ private:
 
 	void printTexture(const std::string &, GLfloat, GLfloat, glm::ivec2, glm::vec3);
 	void refreshCamera();
+	bool subscribeToVHal(sp<IVehicle>, sp<IVehicleCallback>, VehicleProperty);
+	bool getGearFromHal(sp<IVehicle> &);
 	void clearAll();
+
+	void startCapture();
+	void stopCapture();
+	void notifyGear(bool);
 
 	struct Texture
 	{
@@ -106,8 +117,6 @@ private:
 	GLint mProjectionShaderHandle;
 	GLint mTextShaderHandle;
 
-	GLuint cameraTexId;
-
 	GLuint cameraTexY;
 	GLuint cameraTexU;
 	GLuint cameraTexV;
@@ -115,10 +124,10 @@ private:
 	GLuint VBO;
 	GLuint VAO;
 
-	GLuint idTextureGearNeutral;
-	GLuint idTextureGearReverse;
-	GLuint idTextureGearForward;
-	GLuint idTextureHandBreak;
+	Sem mSem;
+	android::sp<DataVehicleListener> mGearListener;
+
+	bool mShouldRefresh = false;
 };
 
 #endif // REARCAMERA_H_
